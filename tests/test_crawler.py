@@ -1,4 +1,4 @@
-from src.crawler import fetch_page, extract_links
+from src.crawler import fetch_page, extract_links, normalize_url
 
 def test_fetch_page():
     html = fetch_page("https://example.com")
@@ -21,3 +21,31 @@ def test_extract_links():
         "/about",
         "/contact",
     ]
+
+
+def test_normalize_url():
+    assert normalize_url(
+        "https://example.com",
+        "/about"
+    ) == "https://example.com/about"
+
+    assert normalize_url(
+        "https://example.com/products/",
+        "item-1"
+    ) == "https://example.com/products/item-1"
+
+    assert normalize_url(
+        "https://example.com",
+        "https://google.com"
+    ) == "https://google.com"
+
+    assert normalize_url(
+        "https://example.com/products/",
+        "../about"
+    ) == "https://example.com/about"
+
+    assert normalize_url(
+        "https://example.com/products/",
+        "./item-1"
+    ) == "https://example.com/products/item-1"
+    
