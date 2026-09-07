@@ -1,6 +1,6 @@
 import httpx
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 def fetch_page(url):
     response = httpx.get(url)
@@ -42,6 +42,8 @@ def crawl(start_url, max_pages):
     queue = [start_url]
     visited = []
 
+    domain = urlparse(start_url).netloc
+
     while queue and len (visited) < max_pages:
         url = queue.pop(0)
 
@@ -52,6 +54,9 @@ def crawl(start_url, max_pages):
         visited.append(url)
 
         for link in links:
+            if urlparse(link).netloc != domain:
+                continue
+
             if link not in visited and link not in queue:
                 queue.append(link)
 
