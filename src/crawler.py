@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
 def fetch_page(url):
-    response = httpx.get(url)
+    response = httpx.get(url, timeout=10)
     response.raise_for_status()
 
     return response.text

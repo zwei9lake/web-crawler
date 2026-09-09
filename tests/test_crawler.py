@@ -179,3 +179,21 @@ def test_crawl_depth(monkeypatch):
         "https://example.com",
         "https://example.com/about",
     ]
+
+def test_fetch_page_timeout(monkeypatch):
+    def mock_get(url, timeout):
+        assert timeout == 10
+
+        class MockResponse:
+            text = "<html></html>"
+
+            def raise_for_status(self):
+                pass
+
+        return MockResponse()
+
+    monkeypatch.setattr("src.crawler.httpx.get", mock_get)
+
+    html = fetch_page("https://example.com")
+
+    assert html == "<html></html>"
