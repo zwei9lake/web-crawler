@@ -1,3 +1,5 @@
+import httpx
+
 from src.crawler import (
     fetch_page,
     extract_links,
@@ -197,3 +199,53 @@ def test_fetch_page_timeout(monkeypatch):
     html = fetch_page("https://example.com")
 
     assert html == "<html></html>"
+
+
+def test_fetch_page_request_error(monkeypatch):
+    def mock_get(url,timeout):
+        raise httpx.RequestError("Connection Failed")
+
+    monkeypatch.setattr("src.crawler.httpx.get", mock_get)
+
+    html = fetch_page("https://example.com")
+
+    assert html is None
+
+
+def test_crawl_page_request_error(monkeypatch):
+    def mock_fetch_page(url):
+        return None
+
+    monkeypatch.setattr("src.crawler.fetch_page", mock_fetch_page)
+
+    links = crawl_page("https://example.com")
+
+    assert links == []
+
+
+def test_crawl_continues_after_request_error(monkeypatch):
+    pages = {
+        "https://example.com": """
+            <a href="/about">About</a>
+            <a href="/contact">Contact</a>
+        """,
+        "https://example.com/contact": """
+        """,
+    }
+
+    def mock_fetch_page(url):
+        if url == "https://example.com/about":
+            return None
+
+        return pages[url]
+
+    monkeypatch.setattr("src.crawler.fetch_page", mock_fetch_page)
+
+    visited = crawl("https://example.com", max_pages=10)
+
+    assert visited == [
+        "https://example.com",
+        "https://example.com/about",
+        "https://example.com/contact",
+    ]
+

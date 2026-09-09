@@ -3,10 +3,14 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
 def fetch_page(url):
-    response = httpx.get(url, timeout=10)
-    response.raise_for_status()
+    try:
+        response = httpx.get(url, timeout=10)
+        response.raise_for_status()
 
-    return response.text
+        return response.text
+
+    except httpx.RequestError:
+        return None
 
 
 def extract_links(html):
@@ -28,6 +32,10 @@ def normalize_url(base_url, link):
 
 def crawl_page(url):
     html = fetch_page(url)
+
+    if html is None:
+        return []
+
     links = extract_links(html)
 
     normalize_links = []
