@@ -38,14 +38,14 @@ def crawl_page(url):
 
     return normalize_links
 
-def crawl(start_url, max_pages):
-    queue = [start_url]
+def crawl(start_url, max_pages, max_depth = None):
+    queue = [(start_url,0)]
     visited = []
 
     domain = urlparse(start_url).netloc
 
     while queue and len(visited) < max_pages:
-        url = queue.pop(0)
+        url, depth = queue.pop(0)
 
         if url in visited:
             continue
@@ -58,12 +58,15 @@ def crawl(start_url, max_pages):
 
         visited.append(url)
 
+        if max_depth is not None and depth >= max_depth:
+            continue
+
         for link in links:
             if urlparse(link).netloc != domain:
                 print(f"Skipping external URL: {link}")
                 continue
 
-            if link not in visited and link not in queue:
-                queue.append(link)
+            if link not in visited and link not in [item[0] for item in queue]:
+                queue.append((link, depth + 1))
 
     return visited
