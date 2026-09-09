@@ -131,3 +131,27 @@ def test_crawl_same_domain(monkeypatch):
         "https://example.com",
         "https://example.com/about",
     ]
+
+
+def test_crawl_output(monkeypatch, capsys):
+    pages = {
+        "https://example.com":"""
+            <a href = "/about">About</a>
+            <a href = "https://google.com">Google</a>
+        """,
+        "https://example.com/about":"""
+        """,
+    }
+
+    def mock_fetch_page(url):
+        return pages[url]
+
+    monkeypatch.setattr("src.crawler.fetch_page", mock_fetch_page)
+
+    crawl("https://example.com", max_pages=10)
+
+    captured = capsys.readouterr()
+
+    assert "Crawling: https://example.com" in captured.out
+    assert "Found: 2 links" in captured.out
+    assert "Skipping external URL: https://google.com" in captured.out

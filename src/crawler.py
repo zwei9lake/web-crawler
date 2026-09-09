@@ -44,17 +44,23 @@ def crawl(start_url, max_pages):
 
     domain = urlparse(start_url).netloc
 
-    while queue and len (visited) < max_pages:
+    while queue and len(visited) < max_pages:
         url = queue.pop(0)
 
         if url in visited:
             continue
 
+        print(f"Crawling: {url}")
+
         links = crawl_page(url)
+
+        print(f"Found: {len(links)} links")
+
         visited.append(url)
 
         for link in links:
             if urlparse(link).netloc != domain:
+                print(f"Skipping external URL: {link}")
                 continue
 
             if link not in visited and link not in queue:
