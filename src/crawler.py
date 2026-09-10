@@ -4,7 +4,13 @@ from urllib.parse import urljoin, urlparse
 
 def fetch_page(url):
     try:
-        response = httpx.get(url, timeout=10)
+        response = httpx.get(
+            url,
+            timeout=10,
+            headers={
+                "User-Agent": "WebCrawler/0.1"
+            }
+        )
         response.raise_for_status()
 
         return response.text

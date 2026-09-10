@@ -183,7 +183,7 @@ def test_crawl_depth(monkeypatch):
     ]
 
 def test_fetch_page_timeout(monkeypatch):
-    def mock_get(url, timeout):
+    def mock_get(url, timeout, headers):
         assert timeout == 10
 
         class MockResponse:
@@ -202,7 +202,7 @@ def test_fetch_page_timeout(monkeypatch):
 
 
 def test_fetch_page_request_error(monkeypatch):
-    def mock_get(url,timeout):
+    def mock_get(url, timeout, headers):
         raise httpx.RequestError("Connection Failed")
 
     monkeypatch.setattr("src.crawler.httpx.get", mock_get)
@@ -213,7 +213,7 @@ def test_fetch_page_request_error(monkeypatch):
 
 
 def test_fetch_page_http_error(monkeypatch):
-    def mock_get(url, timeout):
+    def mock_get(url, timeout, headers):
         request = httpx.Request("GET", url)
         response = httpx.Response(404, request=request)
 
@@ -292,4 +292,23 @@ def test_crawl_continues_after_http_error(monkeypatch):
         "https://example.com/not-found",
         "https://example.com/contact",
     ]
+
+
+def test_fetch_page_user_agent(monkeypatch):
+    def mock_get(url, timeout, headers):
+        assert headers["User-Agent"] == "WebCrawler/0.1"
+
+        class MockResponse:
+            text = "<html></html>"
+
+            def raise_for_status(self):
+                pass
+
+        return MockResponse()
+
+    monkeypatch.setattr("src.crawler.httpx.get", mock_get)
+
+    html = fetch_page("https://example.com")
+
+    assert html == "<html></html>"
 
