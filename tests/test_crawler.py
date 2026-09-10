@@ -6,6 +6,8 @@ from src.crawler import (
     normalize_url,
     crawl_page,
     crawl,
+    is_allowed_by_robots,
+    fetch_robots,
 )
 
 def test_fetch_page():
@@ -312,3 +314,102 @@ def test_fetch_page_user_agent(monkeypatch):
 
     assert html == "<html></html>"
 
+
+def test_is_allowed_by_robots(monkeypatch):
+    robots = """
+        User-agent: WebCrawler
+        Allow: /
+    """
+
+    assert is_allowed_by_robots(
+        robots,
+        "https://example.com/about"
+    )
+
+
+def test_is_not_allowed_by_robots():
+    robots = """
+        User-agent: WebCrawler
+        Disallow: /private/
+    """
+
+    assert not is_allowed_by_robots(
+        robots,
+        "https://example.com/private/data"
+    )
+
+
+def test_crawl_respect_robots(monkeypatch):
+    pages = {
+        "https://example.com": """
+            <a href="/about">About</a>
+            <a href="/private">Private</a>
+        """,
+        "https://example.com/about": """
+        """,
+        "https://example.com/private": """
+        """,
+    }
+
+    robots = """
+        User-agent: WebCrawler
+        Disallow: /private
+    """
+
+    def mock_fetch_page(url):
+        return pages[url]
+
+    def mock_fetch_robots(url):
+        return robots
+
+    monkeypatch.setattr("src.crawler.fetch_page", mock_fetch_page)
+    monkeypatch.setattr("src.crawler.fetch_robots", mock_fetch_robots)
+
+    visited = crawl("https://example.com", max_pages=10)
+
+    assert visited == [
+        "https://example.com",
+        "https://example.com/about",
+    ]
+
+
+def test_fetch_robots(monkeypatch):
+    def mock_get(url, timeout, headers):
+        assert url == "https://example.com/robots.txt"
+        assert timeout == 10
+        assert headers["User-Agent"] == "WebCrawler/0.1"
+
+        class MockResponse:
+            text = """
+                User-agent: WebCrawler
+                Disallow: /private/
+            """
+
+            def raise_for_status(self):
+                pass
+
+        return MockResponse()
+
+    monkeypatch.setattr("src.crawler.httpx.get", mock_get)
+
+    robots = fetch_robots("https://example.com")
+
+    assert "Disallow: /private/" in robots
+
+
+def test_fetch_robots_http_error(monkeypatch):
+    def mock_get(url, timeout, headers):
+        request = httpx.Request("GET", url)
+        response = httpx.Response(404, request=request)
+
+        raise httpx.HTTPStatusError(
+            "404 Not Found",
+            request=request,
+            response=response,
+        )
+
+    monkeypatch.setattr("src.crawler.httpx.get", mock_get)
+
+    robots = fetch_robots("https://example.com")
+
+    assert robots is None
