@@ -12,6 +12,9 @@ def fetch_page(url):
     except httpx.RequestError:
         return None
 
+    except httpx.HTTPStatusError:
+        return None
+
 
 def extract_links(html):
     soup = BeautifulSoup(html,"html.parser");
@@ -78,3 +81,4 @@ def crawl(start_url, max_pages, max_depth = None):
                 queue.append((link, depth + 1))
 
     return visited
+

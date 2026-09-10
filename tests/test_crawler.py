@@ -212,6 +212,24 @@ def test_fetch_page_request_error(monkeypatch):
     assert html is None
 
 
+def test_fetch_page_http_error(monkeypatch):
+    def mock_get(url, timeout):
+        request = httpx.Request("GET", url)
+        response = httpx.Response(404, request=request)
+
+        raise httpx.HTTPStatusError(
+            "404 Not Found",
+            request=request,
+            response=response,
+        )
+
+    monkeypatch.setattr("src.crawler.httpx.get", mock_get)
+
+    html = fetch_page("https://example.com/not-found")
+
+    assert html is None
+
+
 def test_crawl_page_request_error(monkeypatch):
     def mock_fetch_page(url):
         return None
@@ -246,6 +264,32 @@ def test_crawl_continues_after_request_error(monkeypatch):
     assert visited == [
         "https://example.com",
         "https://example.com/about",
+        "https://example.com/contact",
+    ]
+
+def test_crawl_continues_after_http_error(monkeypatch):
+    pages = {
+        "https://example.com": """
+            <a href="/not-found">Not Found</a>
+            <a href="/contact">Contact</a>
+        """,
+        "https://example.com/contact": """
+        """,
+    }
+
+    def mock_fetch_page(url):
+        if url == "https://example.com/not-found":
+            return None
+
+        return pages[url]
+
+    monkeypatch.setattr("src.crawler.fetch_page", mock_fetch_page)
+
+    visited = crawl("https://example.com", max_pages=10)
+
+    assert visited == [
+        "https://example.com",
+        "https://example.com/not-found",
         "https://example.com/contact",
     ]
 
