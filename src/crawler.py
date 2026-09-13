@@ -1,4 +1,5 @@
 import httpx
+import time
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
@@ -56,7 +57,7 @@ def crawl_page(url):
 
     return normalize_links
 
-def crawl(start_url, max_pages, max_depth = None):
+def crawl(start_url, max_pages, max_depth = None, delay = 0):
     queue = [(start_url, 0)]
     visited = []
 
@@ -68,6 +69,9 @@ def crawl(start_url, max_pages, max_depth = None):
 
         if url in visited:
             continue
+
+        if visited and delay > 0:
+            time.sleep(delay)
 
         print(f"Crawling: {url}")
 

@@ -1,4 +1,5 @@
 import httpx
+import time
 
 from src.crawler import (
     fetch_page,
@@ -413,3 +414,36 @@ def test_fetch_robots_http_error(monkeypatch):
     robots = fetch_robots("https://example.com")
 
     assert robots is None
+
+
+def test_crawl_delay(monkeypatch):
+    pages = {
+        "https://example.com": """
+            <a href="/about">About</a>
+        """,
+        "https://example.com/about": """
+        """,
+    }
+
+    sleep_calls = []
+
+    def mock_fetch_page(url):
+        return pages[url]
+
+    def mock_fetch_robots(url):
+        return None
+
+    def mock_sleep(seconds):
+        sleep_calls.append(seconds)
+
+    monkeypatch.setattr("src.crawler.fetch_page", mock_fetch_page)
+    monkeypatch.setattr("src.crawler.fetch_robots", mock_fetch_robots)
+    monkeypatch.setattr("src.crawler.time.sleep", mock_sleep)
+
+    crawl(
+        "https://example.com",
+        max_pages=2,
+        delay = 1
+    )
+
+    assert sleep_calls == [1]
