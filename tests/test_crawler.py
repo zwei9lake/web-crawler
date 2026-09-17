@@ -1,5 +1,6 @@
 import httpx
 import time
+import logging
 
 from src.crawler import (
     fetch_page,
@@ -139,7 +140,7 @@ def test_crawl_same_domain(monkeypatch):
     ]
 
 
-def test_crawl_output(monkeypatch, capsys):
+def test_crawl_output(monkeypatch, caplog):
     pages = {
         "https://example.com":"""
             <a href = "/about">About</a>
@@ -156,11 +157,12 @@ def test_crawl_output(monkeypatch, capsys):
 
     crawl("https://example.com", max_pages=10)
 
-    captured = capsys.readouterr()
+    with caplog.at_level(logging.INFO):
+        crawl("https://example.com", max_pages=10)
 
-    assert "Crawling: https://example.com" in captured.out
-    assert "Found: 2 links" in captured.out
-    assert "Skipping external URL: https://google.com" in captured.out
+    assert "Crawling: https://example.com" in caplog.text
+    assert "Found: 2 links" in caplog.text
+    assert "Skipping external URL: https://google.com" in caplog.text
 
 def test_crawl_depth(monkeypatch):
     pages = {
@@ -484,3 +486,27 @@ def test_cli(monkeypatch):
         "delay": 1,
     }
 
+
+def test_crawl_loggin(monkeypatch, caplog):
+    pages = {
+        "https://example.com": """
+            <a href="/about">About</a>
+        """,
+    }
+
+    def mock_fetch_page(url):
+        return pages[url]
+
+    def mock_fetch_robots(url):
+        return None
+
+    monkeypatch.setattr("src.crawler.fetch_page", mock_fetch_page)
+    monkeypatch.setattr("src.crawler.fetch_robots", mock_fetch_robots)
+
+    with caplog.at_level(logging.INFO):
+        crawl(
+            "https://example.com",
+            max_pages=1
+        )
+
+    assert "Crawling: https://example.com" in caplog.text
