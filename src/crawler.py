@@ -1,8 +1,10 @@
-import httpx
+import argparse
 import time
-from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
+
+import httpx
+from bs4 import BeautifulSoup
 
 def fetch_page(url):
     try:
@@ -126,3 +128,25 @@ def fetch_robots(base_url):
 
     except httpx.HTTPStatusError:
         return None
+
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("start_url")
+    parser.add_argument("--max-pages", type=int, default=10)
+    parser.add_argument("--max-depth", type=int, default=None)
+    parser.add_argument("--delay", type=float, default=0)
+
+    args = parser.parse_args()
+
+    crawl(
+        args.start_url,
+        max_pages=args.max_pages,
+        max_depth=args.max_depth,
+        delay=args.delay,
+    )
+
+if __name__ == "__main__":
+    main()
+
