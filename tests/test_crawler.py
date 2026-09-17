@@ -9,6 +9,7 @@ from src.crawler import (
     crawl,
     is_allowed_by_robots,
     fetch_robots,
+    main
 )
 
 def test_fetch_page():
@@ -447,3 +448,39 @@ def test_crawl_delay(monkeypatch):
     )
 
     assert sleep_calls == [1]
+
+
+def test_cli(monkeypatch):
+    crawl_args = {}
+
+    def mock_crawl(start_url, max_pages, max_depth, delay):
+        crawl_args["start_url"] = start_url
+        crawl_args["max_pages"] = max_pages
+        crawl_args["max_depth"] = max_depth
+        crawl_args["delay"] = delay
+
+    monkeypatch.setattr("src.crawler.crawl", mock_crawl)
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "crawler",
+            "https://example.com",
+            "--max-pages",
+            "10",
+            "--max-depth",
+            "2",
+            "--delay",
+            "1",
+        ]
+    )
+
+    main()
+
+    assert crawl_args == {
+        "start_url": "https://example.com",
+        "max_pages": 10,
+        "max_depth": 2,
+        "delay": 1,
+    }
+
