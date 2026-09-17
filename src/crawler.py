@@ -1,10 +1,13 @@
-import argparse
+import httpx
 import time
+import argparse
+import logging
+
+from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 
-import httpx
-from bs4 import BeautifulSoup
+logger = logging.getLogger(__name__)
 
 def fetch_page(url):
     try:
@@ -75,11 +78,11 @@ def crawl(start_url, max_pages, max_depth = None, delay = 0):
         if visited and delay > 0:
             time.sleep(delay)
 
-        print(f"Crawling: {url}")
+        logger.info(f"Crawling: {url}")
 
         links = crawl_page(url)
 
-        print(f"Found: {len(links)} links")
+        logger.info(f"Found: {len(links)} links")
 
         visited.append(url)
 
@@ -88,11 +91,11 @@ def crawl(start_url, max_pages, max_depth = None, delay = 0):
 
         for link in links:
             if urlparse(link).netloc != domain:
-                print(f"Skipping external URL: {link}")
+                logger.warning(f"Skipping external URL: {link}")
                 continue
 
             if robots is not None and not is_allowed_by_robots(robots, link):
-                print(f"Skipping disallowed URL: {link}")
+                logger.warning(f"Skipping disallowed URL: {link}")
                 continue
 
             if link not in visited and link not in [item[0] for item in queue]:
