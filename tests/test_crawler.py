@@ -461,6 +461,8 @@ def test_cli(monkeypatch):
         crawl_args["max_depth"] = max_depth
         crawl_args["delay"] = delay
 
+        return ["https://example.com"]
+
     monkeypatch.setattr("src.crawler.crawl", mock_crawl)
 
     monkeypatch.setattr(
@@ -510,3 +512,39 @@ def test_crawl_loggin(monkeypatch, caplog):
         )
 
     assert "Crawling: https://example.com" in caplog.text
+
+
+def test_cli_output(monkeypatch, capsys):
+    def mock_crawl(start_url, max_pages, max_depth, delay):
+        return[
+            "https://example.com",
+            "https://example.com/about"
+        ]
+
+    monkeypatch.setattr("src.crawler.crawl", mock_crawl)
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "crawler",
+            "https://example.com",
+            "--max-pages",
+            "10",
+            "--max-depth",
+            "2",
+            "--delay",
+            "1",
+        ],
+    )
+
+    main()
+
+    captured = capsys.readouterr()
+
+    assert "Starting crawl" in captured.out
+    assert "URL: https://example.com" in captured.out
+    assert "Max pages: 10" in captured.out
+    assert "Max depth: 2" in captured.out
+    assert "Delay: 1.0s" in captured.out
+    assert "Crawl finished" in captured.out
+    assert "Pages crawled: 2" in captured.out

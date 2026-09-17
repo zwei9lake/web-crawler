@@ -143,12 +143,21 @@ def main():
 
     args = parser.parse_args()
 
-    crawl(
+    print("Starting crawl")
+    print(f"URL: {args.start_url}")
+    print(f"Max pages: {args.max_pages}")
+    print(f"Max depth: {args.max_depth}")
+    print(f"Delay: {args.delay}s")
+
+    visited = crawl(
         args.start_url,
         max_pages=args.max_pages,
         max_depth=args.max_depth,
         delay=args.delay,
     )
+
+    print("Crawl finished")
+    print(f"Pages crawled: {len(visited)}")
 
 if __name__ == "__main__":
     main()
