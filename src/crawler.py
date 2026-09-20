@@ -2,6 +2,7 @@ import httpx
 import time
 import argparse
 import logging
+import json
 
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
@@ -137,23 +138,41 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("start_url")
-    parser.add_argument("--max-pages", type=int, default=10)
+    parser.add_argument("--max-pages", type=int, default=None)
     parser.add_argument("--max-depth", type=int, default=None)
-    parser.add_argument("--delay", type=float, default=0)
+    parser.add_argument("--delay", type=float, default=None)
+    parser.add_argument("--config")
 
     args = parser.parse_args()
 
+    config = {}
+
+    if args.config:
+        config = load_config(args.config)
+
+    max_pages = args.max_pages
+    if max_pages is None:
+        max_pages = config.get("max_pages", 10)
+
+    max_depth = args.max_depth
+    if max_depth is None:
+        max_depth = config.get("max_depth")
+
+    delay = args.delay
+    if delay is None:
+        delay = config.get("delay", 0)
+
     print("Starting crawl")
     print(f"URL: {args.start_url}")
-    print(f"Max pages: {args.max_pages}")
-    print(f"Max depth: {args.max_depth}")
-    print(f"Delay: {args.delay}s")
+    print(f"Max pages: {max_pages}")
+    print(f"Max depth: {max_depth}")
+    print(f"Delay: {delay}s")
 
     visited = crawl(
         args.start_url,
-        max_pages=args.max_pages,
-        max_depth=args.max_depth,
-        delay=args.delay,
+        max_pages=max_pages,
+        max_depth=max_depth,
+        delay=delay,
     )
 
     print("Crawl finished")
@@ -162,3 +181,7 @@ def main():
 if __name__ == "__main__":
     main()
 
+
+def load_config(path):
+    with open(path, "r") as file:
+        return json.load(file)
