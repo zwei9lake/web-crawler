@@ -10,7 +10,8 @@ from src.crawler import (
     crawl,
     is_allowed_by_robots,
     fetch_robots,
-    main
+    main,
+    load_config,
 )
 
 def test_fetch_page():
@@ -548,3 +549,117 @@ def test_cli_output(monkeypatch, capsys):
     assert "Delay: 1.0s" in captured.out
     assert "Crawl finished" in captured.out
     assert "Pages crawled: 2" in captured.out
+
+
+def test_load_config(tmp_path):
+    config_file = tmp_path / "config.json"
+
+    config_file.write_text(
+        """
+        {
+            "max_pages": 10,
+            "max_depth": 2,
+            "delay": 1
+        }
+        """
+    )
+
+    config = load_config(config_file)
+
+    assert config == {
+        "max_pages": 10,
+        "max_depth": 2,
+        "delay": 1,
+    }
+
+
+def test_cli_config(monkeypatch, tmp_path):
+    config_file = tmp_path / "config.json"
+
+    config_file.write_text(
+        """
+        {
+            "max_pages": 20,
+            "max_depth": 3,
+            "delay": 2
+        }
+        """
+    )
+
+    crawl_args = {}
+
+    def mock_crawl(start_url, max_pages, max_depth, delay):
+        crawl_args["start_url"] = start_url
+        crawl_args["max_pages"] = max_pages
+        crawl_args["max_depth"] = max_depth
+        crawl_args["delay"] = delay
+
+        return[]
+
+    monkeypatch.setattr("src.crawler.crawl", mock_crawl)
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "crawler",
+            "https://example.com",
+            "--config",
+            str(config_file),
+        ],
+    )
+
+    main()
+
+    assert crawl_args == {
+        "start_url": "https://example.com",
+        "max_pages": 20,
+        "max_depth": 3,
+        "delay": 2,
+    }
+
+
+def test_cli_overrides_config(monkeypatch, tmp_path):
+    config_file = tmp_path / "config.json"
+
+    config_file.write_text(
+        """
+        {
+            "max_pages": 20,
+            "max_depth": 3,
+            "delay": 2
+        }
+        """
+    )
+
+    crawl_args = {}
+
+    def mock_crawl(start_url, max_pages, max_depth, delay):
+        crawl_args["start_url"] = start_url
+        crawl_args["max_pages"] = max_pages
+        crawl_args["max_depth"] = max_depth
+        crawl_args["delay"] = delay
+
+        return []
+
+    monkeypatch.setattr("src.crawler.crawl", mock_crawl)
+
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "crawler",
+            "https://example.com",
+            "--config",
+            str(config_file),
+            "--max-pages",
+            "50",
+        ],
+    )
+
+    main()
+
+    assert crawl_args == {
+        "start_url": "https://example.com",
+        "max_pages": 50,
+        "max_depth": 3,
+        "delay": 2,
+    }
