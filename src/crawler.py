@@ -30,6 +30,27 @@ def fetch_page(url):
         return None
 
 
+async def fetch_page_async(url):
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url,
+                timeout=10,
+                headers={
+                    "User-Agent": "WebCrawler/0.1"
+                }
+            )
+
+            response.raise_for_status()
+            return response.text
+
+    except httpx.RequestError:
+        return None
+
+    except httpx.HTTPStatusError:
+        return None
+
+
 def extract_links(html):
     soup = BeautifulSoup(html,"html.parser");
 
