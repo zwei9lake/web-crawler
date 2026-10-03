@@ -1,6 +1,7 @@
 import httpx
 import time
 import logging
+import asyncio
 
 from src.crawler import (
     fetch_page,
@@ -12,6 +13,7 @@ from src.crawler import (
     fetch_robots,
     main,
     load_config,
+    fetch_page_async,
 )
 
 def test_fetch_page():
@@ -663,3 +665,95 @@ def test_cli_overrides_config(monkeypatch, tmp_path):
         "max_depth": 3,
         "delay": 2,
     }
+
+
+def test_fetch_page_async(monkeypatch):
+    class MockResponse:
+        text = "<html>Async page</html>"
+
+        def raise_for_status(self):
+            pass
+
+    class MockAsyncClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+
+        async def get(self, url, timeout, headers):
+            return MockResponse()
+
+    monkeypatch.setattr(
+        "src.crawler.httpx.AsyncClient",
+        lambda: MockAsyncClient()
+    )
+
+    result = asyncio.run(
+        fetch_page_async("https://example.com")
+    )
+
+    assert result == "<html>Async page</html>"
+
+
+def test_fetch_page_async_request_error(monkeypatch):
+    class MockAsyncClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+
+        async def get(self, url, timeout, headers):
+            request = httpx.Request("GET", url)
+            raise httpx.RequestError(
+                "Connection failed",
+                request=request,
+            )
+
+    monkeypatch.setattr(
+        "src.crawler.httpx.AsyncClient",
+        lambda: MockAsyncClient(),
+    )
+
+    result = asyncio.run(
+        fetch_page_async("https://example.com")
+    )
+
+    assert result is None
+
+
+def test_fetch_page_async_http_status_error(monkeypatch):
+    class MockResponse:
+        def raise_for_status(self):
+            request = httpx.Request("GET", "https://example.com")
+            response = httpx.Response(
+                404,
+                request=request,
+            )
+            raise httpx.HTTPStatusError(
+                "404 Not Found",
+                request=request,
+                response=response,
+            )
+
+    class MockAsyncClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            pass
+
+        async def get(self, url, timeout, headers):
+            return MockResponse()
+
+    monkeypatch.setattr(
+        "src.crawler.httpx.AsyncClient",
+        lambda: MockAsyncClient(),
+    )
+
+    result = asyncio.run(
+        fetch_page_async("https://example.com")
+    )
+
+    assert result is None
